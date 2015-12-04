@@ -4,8 +4,9 @@
 #                                                     #
 #  Name:    check_sep_workdir                         #
 #                                                     #
-#  Version: 1.0                                       #
+#  Version: 1.1                                       #
 #  Created: 2015-07-15                                #
+#  Last modified: 2015-12-04                          #
 #  License: GPL - http://www.gnu.org/licenses         #
 #  Copyright: (c)2015 Rene Koch                       #
 #  Author:  Rene Koch <rkoch@rk-it.at>                #
@@ -27,6 +28,9 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 # Changelog:
+# * 1.1.0 - Fri Dec 04 2015 - Rene Koch <rkoch@rk-it.at>
+# - Fixed issue with warning/critical values lower then 10
+#
 # * 1.0.0 - Wed Jul 15 2015 - Rene Koch <rkoch@rk-it.at>
 # - This is the first release of new plugin check_sep_workdir
 
@@ -37,7 +41,7 @@ PERFDATA=1
 
 # Variables
 PROG="check_sep_workdir"
-VERSION="1.0"
+VERSION="1.1"
 
 # Icinga/Nagios status codes
 STATUS_WARNING=1
@@ -151,10 +155,10 @@ SEP_FREE=`df -Tk /var/opt/sesam/var/work/ | tail -1 | awk '{ print $(NF-2) }'`
 # Get biggest Zarafa mailbox
 ZARAFA_MBOX=`for user in $(zarafa-admin -l | tail -n +5 | awk '{ print $1 }' | head -n -1); do bc <<< $(zarafa-admin --detail $user | grep 'Current store size' | awk '{ print $4 }')*1024; done | sort -n | tail -1`
 
-if [ `bc <<< ${ZARAFA_MBOX}*1.${CRIT} | awk -F. '{ print $1  }'` -gt ${SEP_FREE} ]; then
+if [ `bc <<< "${ZARAFA_MBOX}*(100+${CRIT})/100" | awk -F. '{ print $1  }'` -gt ${SEP_FREE} ]; then
   echo "SEP Workdir CRITICAL: ${SEP_FREE}KB free, biggest mailbox is ${ZARAFA_MBOX}KB"
   exit ${STATUS_CRITICAL}
-elif [ `bc <<< ${ZARAFA_MBOX}*1.${WARN} | awk -F. '{ print $1  }'` -gt ${SEP_FREE} ]; then
+elif [ `bc <<< "${ZARAFA_MBOX}*(100+${WARN})/100" | awk -F. '{ print $1  }'` -gt ${SEP_FREE} ]; then
   echo "SEP Workdir WARNING: ${SEP_FREE}KB free, biggest mailbox is ${ZARAFA_MBOX}KB"
   exit ${STATUS_WARNING}
 else
